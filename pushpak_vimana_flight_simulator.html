@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pushpak Vimana | High-Tech UAV Flight & Mission Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#090d16',
+                        panelBg: '#111827',
+                        accentBlue: '#00f0ff',
+                        accentGreen: '#10b981',
+                        accentRed: '#ef4444',
+                        accentAmber: '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .hud-grid {
+            background-image: radial-gradient(rgba(0, 240, 255, 0.15) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        /* Custom Scrollbar for Flight Logs */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #374151; }
+    </style>
+</head>
+<body class="bg-darkBg text-gray-100 min-h-screen flex flex-col antialiased hud-grid">
+
+    <!-- Top Header Navigation -->
+    <header class="bg-panelBg/90 backdrop-blur border-b border-gray-800 sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <svg class="w-6 h-6 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-wider bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">PUSHPAK VIMANA</h1>
+                <p class="text-xs text-gray-400">Autonomous UAV Framework | Uttarakhand Ops (Bageshwar / Haldwani)</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <!-- Mode Indicator Badge -->
+            <div id="headerModeBadge" class="px-3 py-1 rounded-full text-xs font-semibold tracking-wider bg-emerald-900/50 text-emerald-400 border border-emerald-700/50 flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span id="activeModeText">MODE A: AGRI-SPRAY</span>
+            </div>
+
+            <!-- System Status -->
+            <div class="hidden md:flex items-center space-x-3 text-xs font-mono bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-800">
+                <span class="text-gray-400">STATUS:</span>
+                <span id="sysStatus" class="text-amber-400 font-bold">STANDBY</span>
+                <span class="text-gray-600">|</span>
+                <span class="text-gray-400">LINK:</span>
+                <span class="text-cyan-400 font-bold">4G/LTE + MAVLink</span>
+            </div>
+
+            <!-- GitHub Reference -->
+            <a href="https://github.com/RajendraNath33/pushpak-vimana" target="_blank" class="hidden lg:flex items-center space-x-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg border border-gray-700 transition">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span>Repository</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="flex-1 p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-w-[1700px] w-full mx-auto">
+
+        <!-- Left Column: Controls & Mission Parameters (3 cols) -->
+        <section class="lg:col-span-3 flex flex-col space-y-4">
+
+            <!-- Dual-Mode Payload Switcher -->
+            <div class="bg-panelBg rounded-2xl p-4 border border-gray-800 shadow-xl">
+                <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span>Quick-Swap Payload Config</span>
+                    <span class="text-[10px] text-cyan-400 font-mono">2-3 Min Swap</span>
+                </h2>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <button id="btnAgriMode" onclick="setOperationalMode('agri')" class="py-2.5 px-3 rounded-xl text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        <span>AGRI SPRAY</span>
+                    </button>
+                    <button id="btnMedMode" onclick="setOperationalMode('medical')" class="py-2.5 px-3 rounded-xl text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition bg-gray-800/80 text-gray-400 hover:bg-gray-800 border border-gray-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        <span>MEDICAL COLD-CHAIN</span>
+                    </button>
+                </div>
+                <div class="bg-gray-900/60 rounded-xl p-3 border border-gray-800 space-y-2 text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Loaded Module:</span>
+                        <span id="moduleName" class="font-mono text-emerald-400 font-semibold">5L Nano-Urea Tank</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Payload Net Mass:</span>
+                        <span id="payloadMass" class="font-mono font-semibold text-gray-200">4.2 kg (Max 5kg)</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                        <div id="payloadBar" class="bg-emerald-500 h-full w-[84%] transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mission Command Center -->
+            <div class="bg-panelBg rounded-2xl p-4 border border-gray-800 shadow-xl flex-1 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Mission Command Center</h2>
+                    
+                    <!-- Location Selector -->
+                    <div class="mb-4">
+                        <label class="block text-[11px] text-gray-400 mb-1">Target Uttarakhand Grid / Location:</label>
+                        <select id="locationSelect" onchange="changeTargetLocation()" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-500">
+                            <option value="bageshwar">Bageshwar Feeder (Hilly / Ridge Mission)</option>
+                            <option value="haldwani">Haldwani Base Station (Plains / Testing)</option>
+                            <option value="almora">Almora High-Altitude PHC Route</option>
+                        </select>
+                    </div>
+
+                    <!-- Primary Action Buttons -->
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button id="btnArm" onclick="toggleArm()" class="py-2.5 rounded-xl font-semibold text-xs tracking-wider bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition">
+                            ARM SYSTEM
+                        </button>
+                        <button id="btnTakeoff" onclick="toggleTakeoff()" disabled class="py-2.5 rounded-xl font-semibold text-xs tracking-wider bg-cyan-600/50 text-cyan-200/50 cursor-not-allowed border border-cyan-800/50 transition">
+                            AUTO TAKEOFF
+                        </button>
+                    </div>
+
+                    <!-- Failsafe & Emergency Triggers -->
+                    <div class="border-t border-gray-800 pt-3 space-y-2">
+                        <span class="text-[10px] uppercase font-semibold tracking-wider text-red-400">Emergency & Failsafe Triggers</span>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <button onclick="triggerFailsafe('battery')" class="py-1.5 px-2 bg-red-950/40 hover:bg-red-900/50 text-red-300 border border-red-800/50 rounded-lg text-[10px] font-medium transition">
+                                Low Battery
+                            </button>
+                            <button onclick="triggerFailsafe('wind')" class="py-1.5 px-2 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 border border-amber-800/50 rounded-lg text-[10px] font-medium transition">
+                                Wind Gust
+                            </button>
+                            <button onclick="triggerFailsafe('link')" class="py-1.5 px-2 bg-purple-950/40 hover:bg-purple-900/50 text-purple-300 border border-purple-800/50 rounded-lg text-[10px] font-medium transition">
+                                Link Loss
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Environment Controls -->
+                <div class="mt-4 pt-3 border-t border-gray-800 space-y-3">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-400">Wind Speed (m/s):</span>
+                            <span id="windVal" class="font-mono text-cyan-400 font-bold">3.2 m/s</span>
+                        </div>
+                        <input type="range" min="0" max="15" step="0.5" value="3.2" oninput="updateWind(this.value)" class="w-full accent-cyan-400 bg-gray-800 h-1 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Center Column: Interactive Map & HUD View (6 cols) -->
+        <section class="lg:col-span-6 flex flex-col space-y-4">
+
+            <!-- Radar / Map Simulation Canvas -->
+            <div class="bg-panelBg rounded-2xl p-4 border border-gray-800 shadow-xl relative overflow-hidden flex flex-col h-[420px]">
+                <div class="flex items-center justify-between mb-3 z-10">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+                        <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Terrain Radar & Waypoint Navigation</h2>
+                    </div>
+                    <div class="flex items-center space-x-2 text-[11px] font-mono bg-gray-900 px-2.5 py-1 rounded-lg border border-gray-800">
+                        <span class="text-gray-400">LAT:</span> <span id="latCoord" class="text-cyan-400">29.8321° N</span>
+                        <span class="text-gray-600">|</span>
+                        <span class="text-gray-400">LON:</span> <span id="lonCoord" class="text-cyan-400">79.6734° E</span>
+                    </div>
+                </div>
+
+                <!-- Simulated Map Viewport -->
+                <div class="flex-1 bg-[#070b14] rounded-xl border border-gray-800 relative overflow-hidden flex items-center justify-center">
+                    <!-- Mountain Contour Background Elements -->
+                    <div class="absolute inset-0 opacity-20">
+                        <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+                            <path d="M0,350 Q200,200 400,300 T800,250 L800,500 L0,500 Z" fill="#1e293b"/>
+                            <path d="M0,400 Q300,250 500,350 T800,300 L800,500 L0,500 Z" fill="#0f172a"/>
+                            <path d="M100,500 Q300,100 600,400 T800,350" stroke="#334155" stroke-width="2" fill="none"/>
+                        </svg>
+                    </div>
+
+                    <!-- SVG Flight Path & Waypoints -->
+                    <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Route Line -->
+                        <path id="routePath" d="M 120 340 Q 250 180 400 220 T 680 120" stroke="#00f0ff" stroke-width="2" stroke-dasharray="6 4" fill="none" class="opacity-70 animate-pulse"/>
+                        
+                        <!-- Waypoints -->
+                        <circle cx="120" cy="340" r="6" fill="#10b981" />
+                        <text x="120" y="360" fill="#9ca3af" font-size="10" font-family="monospace" text-anchor="middle">Base: Haldwani</text>
+
+                        <circle cx="400" cy="220" r="6" fill="#f59e0b" />
+                        <text x="400" y="240" fill="#9ca3af" font-size="10" font-family="monospace" text-anchor="middle">WP1: Ridge Check</text>
+
+                        <circle cx="680" cy="120" r="8" fill="#ef4444" class="animate-ping" />
+                        <circle cx="680" cy="120" r="6" fill="#ef4444" />
+                        <text x="680" y="105" fill="#ef4444" font-size="10" font-weight="bold" font-family="monospace" text-anchor="middle">Target: Bageshwar PHC</text>
+                    </svg>
+
+                    <!-- Drone Icon Marker -->
+                    <div id="droneMarker" class="absolute transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2" style="left: 35%; top: 52%;">
+                        <div class="relative flex items-center justify-center">
+                            <div class="absolute w-12 h-12 bg-cyan-500/20 rounded-full animate-ping"></div>
+                            <div class="w-8 h-8 rounded-full bg-cyan-500/30 border border-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-500/50">
+                                <svg class="w-5 h-5 text-cyan-300 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Legend Overlay -->
+                    <div class="absolute bottom-3 left-3 bg-gray-900/90 backdrop-blur border border-gray-800 rounded-xl p-2.5 text-[11px] space-y-1 font-mono">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span class="text-gray-300">Launch Pad</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                            <span class="text-gray-300">Medical Drop Zone</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flight HUD Gauges -->
+            <div class="bg-panelBg rounded-2xl p-4 border border-gray-800 shadow-xl grid grid-cols-2 md:grid-cols-4 gap-3">
+                <!-- Altitude -->
+                <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800/80 flex flex-col justify-between">
+                    <span class="text-[11px] font-medium text-gray-400">ALTITUDE (MSL)</span>
+                    <div class="flex items-baseline space-x-1 my-1">
+                        <span id="altVal" class="text-2xl font-bold font-mono text-cyan-400">1,450</span>
+                        <span class="text-xs text-gray-400 font-mono">m</span>
+                    </div>
+                    <span class="text-[10px] text-emerald-400">Terrain Clearance: +65m</span>
+                </div>
+
+                <!-- Ground Speed -->
+                <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800/80 flex flex-col justify-between">
+                    <span class="text-[11px] font-medium text-gray-400">GROUND SPEED</span>
+                    <div class="flex items-baseline space-x-1 my-1">
+                        <span id="speedVal" class="text-2xl font-bold font-mono text-cyan-400">0.0</span>
+                        <span class="text-xs text-gray-400 font-mono">m/s</span>
+                    </div>
+                    <span id="flightModeText" class="text-[10px] text-gray-400">Mode: STABILIZE</span>
+                </div>
+
+                <!-- Battery Status -->
+                <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800/80 flex flex-col justify-between">
+                    <span class="text-[11px] font-medium text-gray-400">12S LI-ION BATTERY</span>
+                    <div class="flex items-baseline space-x-1 my-1">
+                        <span id="batVal" class="text-2xl font-bold font-mono text-emerald-400">98</span>
+                        <span class="text-xs text-gray-400 font-mono">%</span>
+                    </div>
+                    <span id="voltageText" class="text-[10px] text-gray-400 font-mono">50.4V (Stable)</span>
+                </div>
+
+                <!-- GPS Fix -->
+                <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800/80 flex flex-col justify-between">
+                    <span class="text-[11px] font-medium text-gray-400">GPS SATELLITE FIX</span>
+                    <div class="flex items-baseline space-x-1 my-1">
+                        <span id="satVal" class="text-2xl font-bold font-mono text-emerald-400">14</span>
+                        <span class="text-xs text-gray-400 font-mono">Sats</span>
+                    </div>
+                    <span class="text-[10px] text-emerald-400 font-mono">HDOP: 0.8 (3D Fix)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Flight Telemetry Logs & Artificial Horizon (3 cols) -->
+        <section class="lg:col-span-3 flex flex-col space-y-4">
+
+            <!-- Artificial Horizon Widget -->
+            <div class="bg-panelBg rounded-2xl p-4 border border-gray-800 shadow-xl flex flex-col items-center">
+                <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 w-full text-left">Artificial Horizon (AHRS)</h2>
+                <div class="w-36 h-36 rounded-full bg-gradient-to-b from-blue-900 to-amber-900 border-4 border-gray-800 relative overflow-hidden shadow-inner flex items-center justify-center">
+                    <!-- Horizon Line Pitch/Roll Simulation -->
+                    <div id="horizonLine" class="absolute w-48 h-1 bg-white/80 transition-transform duration-200"></div>
+                    <div class="absolute w-3 h-3 rounded-full border-2 border-cyan-400"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-3 w-full text-center font-mono text-xs">
+                    <div class="bg-gray-900/80 p-2 rounded-xl border border-gray-800">
+                        <span class="text-gray-400 text-[10px] block">PITCH</span>
+                        <span id="pitchVal" class="text-cyan-400 font-bold">+2.4°</span>
+                    </div>
+                    <div class="bg-gray-900/80 p-2 rounded-xl border border-gray-800">
+                        <span class="text-gray-400 text-[10px] block">ROLL</span>
+                        <span id="rollVal" class="text-cyan-400 font-bold">-0.5°</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Telemetry Log Feed -->
+            <div class="bg-panelBg rounded-2xl p-4 border border-gray-800 shadow-xl flex-1 flex flex-col min-h-[280px]">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Mission Telemetry Log</h2>
+                    <button onclick="clearLogs()" class="text-[10px] text-gray-400 hover:text-cyan-400 transition">Clear</button>
+                </div>
+                <div id="logContainer" class="flex-1 bg-gray-950/80 rounded-xl p-3 font-mono text-[11px] overflow-y-auto space-y-1.5 border border-gray-900 max-h-[220px]">
+                    <div class="text-gray-500">[00:00:01] System boot sequence initialized. Pixhawk ArduCopter v4.5 ready.</div>
+                    <div class="text-cyan-400">[00:00:03] Ground Control Station connected via MAVLink UDP 14550.</div>
+                    <div class="text-emerald-400">[00:00:05] Pre-arm checks passed. GPS 3D Fix confirmed (14 Satellites).</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Copyright -->
+    <footer class="bg-panelBg/50 border-t border-gray-800/60 py-3 px-4 text-center text-xs text-gray-500 font-mono">
+        Pushpak Vimana Framework &bull; Designed for BSERC Def-Space Autumn Internship &bull; Bageshwar & Haldwani Field Ops
+    </footer>
+
+    <!-- Interactive Simulation JavaScript Logic -->
+    <script>
+        let isArmed = false;
+        let isFlying = false;
+        let currentMode = 'agri';
+        let battery = 98;
+        let altitude = 1450;
+        let speed = 0.0;
+        let lat = 29.8321;
+        let lon = 79.6734;
+        let simInterval = null;
+
+        const logContainer = document.getElementById('logContainer');
+
+        function addLog(message, type = 'info') {
+            const time = new Date().toTimeString().split(' ')[0];
+            const div = document.createElement('div');
+            div.className = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : type === 'warn' ? 'text-amber-400' : 'text-cyan-400';
+            div.textContent = `[${time}] ${message}`;
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function setOperationalMode(mode) {
+            currentMode = mode;
+            const btnAgri = document.getElementById('btnAgriMode');
+            const btnMed = document.getElementById('btnMedMode');
+            const headerBadge = document.getElementById('headerModeBadge');
+            const activeText = document.getElementById('activeModeText');
+            const moduleName = document.getElementById('moduleName');
+            const payloadMass = document.getElementById('payloadMass');
+            const payloadBar = document.getElementById('payloadBar');
+
+            if (mode === 'agri') {
+                btnAgri.className = "py-2.5 px-3 rounded-xl text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-500";
+                btnMed.className = "py-2.5 px-3 rounded-xl text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition bg-gray-800/80 text-gray-400 hover:bg-gray-800 border border-gray-700";
+                headerBadge.className = "px-3 py-1 rounded-full text-xs font-semibold tracking-wider bg-emerald-900/50 text-emerald-400 border border-emerald-700/50 flex items-center space-x-1.5";
+                activeText.textContent = "MODE A: AGRI-SPRAY";
+                moduleName.textContent = "5L Nano-Urea Tank";
+                payloadMass.textContent = "4.2 kg (Max 5kg)";
+                payloadBar.className = "bg-emerald-500 h-full w-[84%] transition-all duration-500";
+                addLog("Payload switched to Module A: Agri Spray (ID 0x01). Sprayer profile loaded.", "success");
+            } else {
+                btnMed.className = "py-2.5 px-3 rounded-xl text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition bg-blue-600 text-white shadow-lg shadow-blue-600/30 border border-blue-500";
+                btnAgri.className = "py-2.5 px-3 rounded-xl text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition bg-gray-800/80 text-gray-400 hover:bg-gray-800 border border-gray-700";
+                headerBadge.className = "px-3 py-1 rounded-full text-xs font-semibold tracking-wider bg-blue-900/50 text-blue-400 border border-blue-700/50 flex items-center space-x-1.5";
+                activeText.textContent = "MODE B: MEDICAL COLD-CHAIN";
+                moduleName.textContent = "Insulated Vaccine Box (2-8°C)";
+                payloadMass.textContent = "3.8 kg (Max 5kg)";
+                payloadBar.className = "bg-blue-500 h-full w-[76%] transition-all duration-500";
+                addLog("Payload switched to Module B: Healthcare Logistics (ID 0x02). Cold-chain logger active.", "success");
+            }
+        }
+
+        function toggleArm() {
+            isArmed = !isArmed;
+            const btnArm = document.getElementById('btnArm');
+            const btnTakeoff = document.getElementById('btnTakeoff');
+            const sysStatus = document.getElementById('sysStatus');
+
+            if (isArmed) {
+                btnArm.className = "py-2.5 rounded-xl font-semibold text-xs tracking-wider bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-500 transition";
+                btnArm.textContent = "DISARM SYSTEM";
+                sysStatus.textContent = "ARMED";
+                sysStatus.className = "text-emerald-400 font-bold";
+                
+                btnTakeoff.disabled = false;
+                btnTakeoff.className = "py-2.5 rounded-xl font-semibold text-xs tracking-wider bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/30 border border-cyan-500 transition cursor-pointer";
+                addLog("Motors armed. Safety interlock released. Ready for autonomous takeoff.", "success");
+            } else {
+                if (isFlying) toggleTakeoff();
+                btnArm.className = "py-2.5 rounded-xl font-semibold text-xs tracking-wider bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition";
+                btnArm.textContent = "ARM SYSTEM";
+                sysStatus.textContent = "STANDBY";
+                sysStatus.className = "text-amber-400 font-bold";
+
+                btnTakeoff.disabled = true;
+                btnTakeoff.className = "py-2.5 rounded-xl font-semibold text-xs tracking-wider bg-cyan-600/50 text-cyan-200/50 cursor-not-allowed border border-cyan-800/50 transition";
+                btnTakeoff.textContent = "AUTO TAKEOFF";
+                isFlying = false;
+                addLog("System disarmed and secured.", "warn");
+            }
+        }
+
+        function toggleTakeoff() {
+            if (!isArmed) return;
+            isFlying = !isFlying;
+            const btnTakeoff = document.getElementById('btnTakeoff');
+            const sysStatus = document.getElementById('sysStatus');
+
+            if (isFlying) {
+                btnTakeoff.textContent = "RTL / LAND";
+                sysStatus.textContent = "IN FLIGHT";
+                sysStatus.className = "text-cyan-400 font-bold animate-pulse";
+                addLog("Autonomous mission initiated towards Bageshwar mountain corridor.", "success");
+                startSimulationLoop();
+            } else {
+                btnTakeoff.textContent = "AUTO TAKEOFF";
+                sysStatus.textContent = "ARMED";
+                sysStatus.className = "text-emerald-400 font-bold";
+                addLog("Return to Launch (RTL) executed. Landed safely at base station.", "success");
+                if (simInterval) clearInterval(simInterval);
+            }
+        }
+
+        function startSimulationLoop() {
+            if (simInterval) clearInterval(simInterval);
+            let progress = 35;
+
+            simInterval = setInterval(() => {
+                if (!isFlying) return;
+
+                // Simulate flight movement
+                progress += 0.5;
+                if (progress > 85) progress = 35;
+
+                const droneMarker = document.getElementById('droneMarker');
+                droneMarker.style.left = `${progress}%`;
+                droneMarker.style.top = `${52 - Math.sin(progress * 0.1) * 15}%`;
+
+                // Update Telemetry
+                altitude = Math.floor(1450 + Math.sin(progress) * 120);
+                speed = (12.4 + Math.cos(progress) * 2.1).toFixed(1);
+                lat = (29.8321 + (progress - 35) * 0.001).toFixed(4);
+                lon = (79.6734 + (progress - 35) * 0.002).toFixed(4);
+
+                if (battery > 15) battery -= 0.05;
+
+                document.getElementById('altVal').textContent = altitude.toLocaleString();
+                document.getElementById('speedVal').textContent = speed;
+                document.getElementById('batVal').textContent = Math.floor(battery);
+                document.getElementById('latCoord').textContent = `${lat}° N`;
+                document.getElementById('lonCoord').textContent = `${lon}° E`;
+                document.getElementById('flightModeText').textContent = currentMode === 'agri' ? "Mode: AUTO (Spray)" : "Mode: AUTO (Medical)";
+
+            }, 500);
+        }
+
+        function triggerFailsafe(type) {
+            if (type === 'battery') {
+                addLog("WARNING: Low battery threshold reached (25%). Initiating automated Return-to-Launch...", "error");
+                document.getElementById('batVal').textContent = "22";
+                document.getElementById('batVal').className = "text-2xl font-bold font-mono text-red-500 animate-pulse";
+            } else if (type === 'wind') {
+                addLog("ALERT: High wind gust detected (12.5 m/s) over ridge. Adjusting attitude controller gains.", "warn");
+            } else if (type === 'link') {
+                addLog("CRITICAL: Telemetry signal lost for >3s. Autonomous failsafe RTL engaged.", "error");
+            }
+        }
+
+        function updateWind(val) {
+            document.getElementById('windVal').textContent = `${val} m/s`;
+            if (val > 10) {
+                addLog(`Wind speed increased to ${val} m/s. Exceeding recommended operating limit!`, "warn");
+            }
+        }
+
+        function changeTargetLocation() {
+            const select = document.getElementById('locationSelect');
+            addLog(`Mission waypoint target updated to: ${select.options[select.selectedIndex].text}`, "info");
+        }
+
+        function clearLogs() {
+            logContainer.innerHTML = '<div class="text-gray-500">[System] Logs cleared.</div>';
+        }
+    </script>
+</body>
+</html>
