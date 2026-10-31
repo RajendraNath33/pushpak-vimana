@@ -1,0 +1,49 @@
+# Pushpak Vimana - baseline ArduCopter parameters (STARTING POINT ONLY)
+# Verify every name/value against your ArduPilot firmware version (4.x) in
+# Mission Planner / QGroundControl, tune in SITL first, then on the bench.
+# Load: Mission Planner > CONFIG > Full Parameter List > Load from file.
+
+# --- Airframe: hexacopter X ---
+FRAME_CLASS,2
+FRAME_TYPE,1
+
+# --- Geo-fence: max altitude + circle + polygon, breach -> RTL (then Land) ---
+FENCE_ENABLE,1
+FENCE_TYPE,7
+FENCE_ACTION,3
+FENCE_ALT_MAX,120
+FENCE_RADIUS,5000
+FENCE_MARGIN,5
+
+# --- Battery failsafes (set voltages/mAh for your pack!) ---
+BATT_MONITOR,4
+BATT_FS_LOW_ACT,2
+BATT_FS_CRT_ACT,1
+BATT_LOW_MAH,5000
+BATT_CRT_MAH,3000
+# BATT_LOW_VOLT / BATT_CRT_VOLT : set per cell count (e.g. 12S) after calibration
+
+# --- Link-loss failsafes: RC loss and GCS/telemetry loss -> RTL ---
+FS_THR_ENABLE,1
+FS_GCS_ENABLE,1
+FS_GCS_TIMEOUT,10
+FS_EKF_ACTION,1
+
+# --- Return-to-home ---
+# Use the planner's suggested RTL_ALT (cm) per mission, or terrain-relative RTL:
+RTL_ALT,6000
+RTL_ALT_FINAL,0
+RTL_ALT_TYPE,1
+
+# --- Terrain following (SRTM terrain database + downward rangefinder) ---
+TERRAIN_ENABLE,1
+TERRAIN_SPACING,100
+# Rangefinder: set RNGFND1_TYPE/ADDR/MIN/MAX for your LiDAR model
+# --- Obstacle avoidance (needs proximity sensor, e.g. mmWave radar) ---
+# AVOID_ENABLE,7
+# OA_TYPE,1
+# PRX1_TYPE,<sensor type>
+
+# --- Agricultural sprayer (enable only when SPRAY module is mounted) ---
+SPRAY_ENABLE,0
+# SPRAY_ENABLE,1 ; SERVOx_FUNCTION,22 (pump) ; SPRAY_PUMP_RATE,<%> ; SPRAY_SPEED_MIN,100 (cm/s)
